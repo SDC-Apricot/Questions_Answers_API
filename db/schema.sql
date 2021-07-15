@@ -4,7 +4,7 @@ SET search_path TO qa_schema, public;
 
 CREATE TABLE questions (
   question_id INTEGER NOT NULL PRIMARY KEY,
-  product_id INTEGER,
+  product_id INTEGER NOT NULL,
   question_body VARCHAR(1000),
   question_date TIMESTAMP WITH TIME ZONE,
   asker_name VARCHAR(60),
