@@ -4,3 +4,5 @@ var connectionString = 'postgres://alizeh:password@localhost:5432/questions_answ
 const client = new Client({
     connectionString: connectionString
 });
+
+client.connect();
