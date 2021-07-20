@@ -7,7 +7,7 @@ app.get('/', (req, res) => {
 
 app.get('/qa/questions', (req,res) => {
   // TODO
-    //request contains:
+    // request contains:
     // product_id, page, count
     // respond with status code 200 + data
 

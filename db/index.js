@@ -8,3 +8,5 @@ var connectionString = `postgres://${username}:${password}@localhost:5432/questi
 const client = new Client({
     connectionString: connectionString
 });
+
+module.exports = client;
