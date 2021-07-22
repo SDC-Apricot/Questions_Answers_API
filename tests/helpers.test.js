@@ -38,6 +38,7 @@ describe('GET questions', () => {
       .expect(200)
       .then((response) => {
         dbResponse = response;
+        console.log('dbResponse: ', dbResponse);
       })
       .catch((error) => {
         console.log(error);

@@ -27,7 +27,7 @@ CREATE TABLE answers (
 CREATE TABLE photos (
   id INTEGER NOT NULL PRIMARY KEY,
   answers_id INTEGER NOT NULL REFERENCES answers(id),
-  photo_url VARCHAR(200)
+  url VARCHAR(200)
 );
 
 CREATE TEMP TABLE questionstemp (
