@@ -9,4 +9,6 @@ const client = new Client({
     connectionString: connectionString
 });
 
+client.connect();
+
 module.exports = client;
