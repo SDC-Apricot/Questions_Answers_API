@@ -1,64 +1,80 @@
 const express = require('express');
 const { forEach } = require('lodash');
 const app = express();
-const client = require('../db/index.js');
+const client = require('../postgresql/index.js');
+const getParameters = require('./helpers/getParameters.js');
 
 app.get('/qa/questions', (req,res) => {
-  // TODO
-    // request contains:
-    // product_id, page, count
-    // respond with status code 200 + data
-  // extract parameters from query
-  var indexOfParams = req.path.indexOf('?') + 1;
-  var params = req.path.slice(indexOfParams);
-  params = params.split('&');
-  for (var i = 0; i < params.length; i++) {
-    if (params[i].indexOf('product_id=') !== -1) {
-      var product_id = Number(params[i].slice(11));
-    } else if (params[i].indexOf('page=') !== -1) {
-      var page = Number(params[i].slice(5));
-    } else if (params[i].indexOf('count=') !== -1) {
-      var count = Number(params[i].slice(6));
-    }
-  }
+
+  // extract parameters
+  var parameters = getParameters(req.originalUrl);
+  
+  console.log('getParameters: ', getParameters);
+  console.log('parameters: ', parameters);
+  console.log('parameters.product_id: ', parameters.product_id);
+
   // if product_id is not included in the query respond with bad request (400)
-  if (product_id === undefined) {
-    res.statusCode(400).send('product_id is not defined');
+  if (parameters.product_id === undefined) {
+    console.log('in here');
+    res.status(400).send('product_id is not defined');
   }
-  // set default values for page and count if not defined in query
-  var page = page === undefined ? 1 : page;
-  var count = count === undefined ? 5 : count;
-  var startNumber = (page - 1) * count;
+  
   // query db
-  var responseData = {
-    product_id: product_id,
+  var query = `
+    SELECT array_to_json(array_agg(row_to_json(d)))
+    FROM (
+      SELECT q.question_id, q.question_body, q.question_date, q.asker_name, q.question_helpfulness, q.reported,
+        (
+        SELECT array_to_json(array_agg(row_to_json(e)))
+        FROM (
+          SELECT a.id, a.body, a.date, a.answerer_name, a.helpfulness,
+            (
+            SELECT array_to_json(array_agg(row_to_json(f)))
+            FROM (
+              SELECT p.id, p.photo_url
+              FROM qa_schema."photos" AS p
+              WHERE  a.id = p.answers_id
+              ) f
+            ) as photos
+          FROM qa_schema."answers" AS a
+          WHERE q.question_id = a.question_id
+          ) e
+        ) as answers
+      FROM qa_schema."questions" AS q
+      WHERE product_id = ${parameters.product_id}
+      ORDER BY q.question_id
+      LIMIT ${parameters.count} OFFSET ${parameters.startNumber}
+  ) d;
+  `;
+
+  var data = {
+    product_id: parameters.product_id,
     results: []
-  }
-  client.query(`SELECT question_id, question_body, question_date, asker_name, question_helpfulness, reported FROM questions WHERE product_id=${product_id} ORDER BY question_id LIMIT ${count} OFFSET ${startNumber}`)
-    .then((questionData) => {
-      console.log('questionData: ', questionData);
-      responseData.results = questionData;
-      // forEach(questionData, (question) => {
-      //   question.answers = {};
-      //   client.query(`SELECT id, body, date, answerer_name, helpfulness FROM answers WHERE question_id=${question.question_id}, reported=false`)
-      //     .then((answerData) => {
-      //       forEach(answerData, (answer) => {
-      //         // need to change photo_url to url
-      //         client.query(`SELECT id, photo_url FROM photos WHERE answers_id=${answer.id}`)
-      //           .then((photoData) => {
-      //             answer.photos = photoData;
-      //             question.answers[answer.id] = answer;
-      //           })
-      //       })
-      //     })
-      //   responseData.results.push(question);
-      // })
+  };
+  
+  console.log('query: ', query);
+
+  client.query(query)
+    .then((response) => {
+      var questionsData = response.rows[0].array_to_json;
+      console.log('questionsData: ', JSON.stringify(questionsData));
+      forEach(questionsData, (question) => {
+        var newAnswers = {};
+        forEach(question.answers, (answer) => {
+          if (answer.photos === null) {
+            answer.photos = [];
+          }
+          newAnswers[answer.id] = answer;
+        })
+        question.answers = newAnswers;
+        data.results.push(question);
+      })
+      console.log('data.results: ', data.results);
+      res.status(200).send(data);
     })
     .catch((error) => {
-      res.statusCode(500).send(error);
+      res.status(500).send(error);
     })
-  // send response
-  res.statusCode(200).send(responseData);
 })
 
 app.post('/qa/questions', (req, res) => {
@@ -73,8 +89,8 @@ app.get('/qa/questions/*/answers', (req,res) => {
       // request contains:
       // question_id, page, count
       // respond with status code 200 + data
-  
-  })
+    
+})
 
 app.post('/qa/questions/*/answers', (req, res) => {
   //TODO

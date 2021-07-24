@@ -9,4 +9,23 @@ const client = new Client({
     connectionString: connectionString
 });
 
-client.connect();
+var connect = async () => {
+    await client.connect((err) => {
+        if (err) {
+            console.log(err);
+        } else {
+            console.log('connected!');
+        }
+        // client.query('SELECT * FROM qa_schema."questions";', (err, data) => {
+        //     if (err) {
+        //         console.log(err);
+        //     } else {
+        //         console.log(data);
+        //     }
+        // })
+    });
+};
+
+connect();
+
+module.exports = client;
