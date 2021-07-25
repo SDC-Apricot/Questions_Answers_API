@@ -1,6 +1,21 @@
 var getParameters = (url) => {
+
   var parameters = {};
 
+  // extract question_id
+  var indexStart = url.indexOf('/qa/questions/') + 14;
+  var indexEnd = url.indexOf('/', indexStart);
+  if (indexEnd !== -1) {
+    parameters.question_id = Number(url.slice(indexStart, indexEnd));
+  }
+
+  // extract answer_id
+  if (url.indexOf('/qa/answers/') !== -1) {
+    var indexStart = url.indexOf('/qa/answers/') + 12;
+    var indexEnd = url.indexOf('/', indexStart);
+    parameters.answer_id = Number(url.slice(indexStart, indexEnd));
+  }
+  
   // extract parameters from query
   var indexOfParams = url.indexOf('?') + 1;
   var params = url.slice(indexOfParams);

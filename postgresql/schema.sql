@@ -78,3 +78,25 @@ CSV HEADER;
 DROP TABLE questionstemp cascade;
 
 DROP TABLE answerstemp cascade;
+
+CREATE SEQUENCE question_id_increment
+  AS INT
+  START 3518964
+  INCREMENT 1
+  NO MAXVALUE
+  OWNED BY questions.question_id;
+
+CREATE SEQUENCE answer_id_increment
+  AS INT
+  START 6879307
+  INCREMENT 1
+  NO MAXVALUE
+  OWNED BY answers.id;
+
+CREATE SEQUENCE photo_id_increment
+  AS INT
+  START 2063760
+  INCREMENT 1
+  NO MAXVALUE
+  OWNED BY photos.id;
+
