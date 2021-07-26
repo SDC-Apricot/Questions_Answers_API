@@ -212,8 +212,28 @@ app.put('/qa/questions/*/helpful', (req, res) => {
 })
 
 app.put('/qa/questions/*/report', (req, res) => {
-  //TODO
-    // response with status code 204
+  
+  // extract parameters
+  var parameters = getParameters(req.originalUrl);
+
+  // if question_id is not included in the query respond with bad request (400)
+  if (parameters.question_id === undefined) {
+    res.status(400).send('question_id is not defined');
+  }
+
+  var query = `
+  UPDATE qa_schema."questions"
+  SET reported = true
+  WHERE question_id=${parameters.question_id};`
+
+  client.query(query)
+    .then((response) => {
+      res.status(204).send();
+    })
+    .catch((error) => {
+      res.status(500).send(error);
+    })
+
 })
 
 app.put('/qa/answers/*/helpful', (req, res) => {
@@ -241,8 +261,28 @@ app.put('/qa/answers/*/helpful', (req, res) => {
 })
 
 app.put('/qa/answers/*/report', (req, res) => {
-  //TODO
-    // response with status code 204
+  
+  // extract parameters
+  var parameters = getParameters(req.originalUrl);
+
+  // if question_id is not included in the query respond with bad request (400)
+  if (parameters.answer_id === undefined) {
+    res.status(400).send('answer_id is not defined');
+  }
+
+  var query = `
+  UPDATE qa_schema."answers"
+  SET reported = true
+  WHERE id=${parameters.answer_id};`
+
+  client.query(query)
+    .then((response) => {
+      res.status(204).send();
+    })
+    .catch((error) => {
+      res.status(500).send(error);
+    })
+
 })
 
 module.exports = app;

@@ -16,13 +16,6 @@ var connect = async () => {
         } else {
             console.log('connected!');
         }
-        // client.query('SELECT * FROM qa_schema."questions";', (err, data) => {
-        //     if (err) {
-        //         console.log(err);
-        //     } else {
-        //         console.log(data);
-        //     }
-        // })
     });
 };
 
