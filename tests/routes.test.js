@@ -2,7 +2,6 @@ const app = require('../server/app.js');
 const client = require('../postgresql/index.js');
 const supertest = require('supertest');
 const axios = require('axios');
-const { expect } = require('@jest/globals');
 const port = 5000;
 require('dotenv').config();
 
@@ -13,7 +12,7 @@ beforeAll(() => {
 })
 
 describe('GET questions', () => {
-  xit('response should be correctly formatted', async () => {
+  it('response should be correctly formatted', async () => {
     const options = {product_id: 28212};
     var dbResponse;
     var apiResponse;
@@ -55,7 +54,7 @@ describe('GET questions', () => {
 })
 
 describe('GET answers', () => {
-  xit('response is formatted correctly', async () => {
+  it('response is formatted correctly', async () => {
     var dbResponse;
     var apiResponse;
 
@@ -94,7 +93,7 @@ describe('GET answers', () => {
 })
 
 describe('POST question', () => {
-  xit('question is added to the db', async () => {
+  it('question is added to the db', async () => {
     var rowsBefore = await client.query(`SELECT COUNT(*) FROM qa_schema."questions" WHERE product_id=28212;`);
 
     var options = {
@@ -120,7 +119,7 @@ describe('POST question', () => {
 })
 
 describe('POST answer', () => {
-  xit('answer is added to the db', async () => {
+  it('answer is added to the db', async () => {
     var rowsBefore = await client.query(`SELECT COUNT(*) FROM qa_schema."answers" WHERE question_id=3518964;`);
     var photosCountBefore = await client.query(`SELECT COUNT(*) FROM qa_schema."photos";`);
 
@@ -152,7 +151,7 @@ describe('POST answer', () => {
 })
 
 describe('PUT question', () => {
-  xit('adds 1 to the helpfulness score', async () => {
+  it('adds 1 to the helpfulness score', async () => {
     var helpfulnessBefore = await client.query(`SELECT question_helpfulness FROM qa_schema."questions" WHERE question_id=3518964;`);
 
     await supertest(app)
@@ -169,10 +168,25 @@ describe('PUT question', () => {
 
     expect(Number(helpfulnessAfter.rows[0].question_helpfulness)).toBe(Number(helpfulnessBefore.rows[0].question_helpfulness) + 1);
   })
+  
+  it('marks question as true for reported', async () => {
+    
+    await supertest(app)
+    .put('/qa/questions/3518964/report')
+    .send({})
+    .expect(204)
+    .catch((error) => {
+      console.log(error);
+    })
+
+    var reported = await client.query(`SELECT reported FROM qa_schema."questions" WHERE question_id=3518964;`);
+
+    expect(reported).toBeTruthy();
+  })
 })
 
 describe('PUT answer', () => {
-  xit('adds 1 to the helpfulness score', async () => {
+  it('adds 1 to the helpfulness score', async () => {
     var helpfulnessBefore = await client.query(`SELECT helpfulness FROM qa_schema."answers" WHERE id=6879307;`);
 
     await supertest(app)
@@ -188,5 +202,20 @@ describe('PUT answer', () => {
     var helpfulnessAfter = await client.query(`SELECT helpfulness FROM qa_schema."answers" WHERE id=6879307;`);
 
     expect(Number(helpfulnessAfter.rows[0].helpfulness)).toBe(Number(helpfulnessBefore.rows[0].helpfulness) + 1);
+  })
+
+  it('marks answer as true for reported', async () => {
+    
+    await supertest(app)
+    .put('/qa/answers/6879307/report')
+    .send({})
+    .expect(204)
+    .catch((error) => {
+      console.log(error);
+    })
+
+    var reported = await client.query(`SELECT reported FROM qa_schema."answers" WHERE id=6879307;`);
+
+    expect(reported).toBeTruthy();
   })
 })
