@@ -162,16 +162,13 @@ app.post('/qa/questions/*/answers', (req, res) => {
   RETURNING id;
   `;
   
-  var answer_id, currUrl;
-  
   var queryPhoto = `
   INSERT INTO qa_schema."photos"(id, answers_id, photo_url)
   VALUES `;
 
   client.query(queryAnswer)
     .then((response) => {
-      console.log('Response: ', response);
-      answer_id = Number(response.rows[0].id);
+      var answer_id = Number(response.rows[0].id);
       for (var i = 0; i < req.body.photos.length; i++) {
         var currString = `(nextval('qa_schema.photo_id_increment'), ${answer_id}, '${req.body.photos[i]}')`;
         if (i === req.body.photos.length - 1) {
@@ -180,7 +177,6 @@ app.post('/qa/questions/*/answers', (req, res) => {
           queryPhoto = queryPhoto + currString + `, `;
         }
       };
-      console.log('queryPhoto: ', queryPhoto);
       return client.query(queryPhoto);
     })
     .then((response) => {
@@ -191,22 +187,60 @@ app.post('/qa/questions/*/answers', (req, res) => {
     })
 })
 
-app.put('qa/questions/*/helpful', (req, res) => {
+app.put('/qa/questions/*/helpful', (req, res) => {
+
+  // extract parameters
+  var parameters = getParameters(req.originalUrl);
+
+  // if question_id is not included in the query respond with bad request (400)
+  if (parameters.question_id === undefined) {
+    res.status(400).send('question_id is not defined');
+  }
+
+  var query = `
+  UPDATE qa_schema."questions"
+  SET question_helpfulness = ((SELECT question_helpfulness FROM qa_schema."questions" WHERE question_id=${parameters.question_id}) + 1)
+  WHERE question_id=${parameters.question_id};`
+
+  client.query(query)
+    .then((response) => {
+      res.status(204).send();
+    })
+    .catch((error) => {
+      res.status(500).send(error);
+    })
+})
+
+app.put('/qa/questions/*/report', (req, res) => {
   //TODO
     // response with status code 204
 })
 
-app.put('qa/questions/*/report', (req, res) => {
-  //TODO
-    // response with status code 204
+app.put('/qa/answers/*/helpful', (req, res) => {
+
+  // extract parameters
+  var parameters = getParameters(req.originalUrl);
+
+  // if question_id is not included in the query respond with bad request (400)
+  if (parameters.answer_id === undefined) {
+    res.status(400).send('answer_id is not defined');
+  }
+
+  var query = `
+  UPDATE qa_schema."answers"
+  SET helpfulness = ((SELECT helpfulness FROM qa_schema."answers" WHERE id=${parameters.answer_id}) + 1)
+  WHERE id=${parameters.answer_id};`
+
+  client.query(query)
+    .then((response) => {
+      res.status(204).send();
+    })
+    .catch((error) => {
+      res.status(500).send(error);
+    })
 })
 
-app.put('qa/answers/*/helpful', (req, res) => {
-  //TODO
-    // response with status code 204
-})
-
-app.put('qa/answers/*/report', (req, res) => {
+app.put('/qa/answers/*/report', (req, res) => {
   //TODO
     // response with status code 204
 })

@@ -150,3 +150,43 @@ describe('POST answer', () => {
     expect(Number(photosCountAfter.rows[0].count) - Number(photosCountBefore.rows[0].count)).toBe(2);
   })
 })
+
+describe('PUT question', () => {
+  xit('adds 1 to the helpfulness score', async () => {
+    var helpfulnessBefore = await client.query(`SELECT question_helpfulness FROM qa_schema."questions" WHERE question_id=3518964;`);
+
+    await supertest(app)
+    .put('/qa/questions/3518964/helpful')
+    .send({})
+    .expect(204)
+    .then((data) => {
+    })
+    .catch((error) => {
+      console.log(error);
+    })
+    
+    var helpfulnessAfter = await client.query(`SELECT question_helpfulness FROM qa_schema."questions" WHERE question_id=3518964;`);
+
+    expect(Number(helpfulnessAfter.rows[0].question_helpfulness)).toBe(Number(helpfulnessBefore.rows[0].question_helpfulness) + 1);
+  })
+})
+
+describe('PUT answer', () => {
+  xit('adds 1 to the helpfulness score', async () => {
+    var helpfulnessBefore = await client.query(`SELECT helpfulness FROM qa_schema."answers" WHERE id=6879307;`);
+
+    await supertest(app)
+    .put('/qa/answers/6879307/helpful')
+    .send({})
+    .expect(204)
+    .then((data) => {
+    })
+    .catch((error) => {
+      console.log(error);
+    })
+    
+    var helpfulnessAfter = await client.query(`SELECT helpfulness FROM qa_schema."answers" WHERE id=6879307;`);
+
+    expect(Number(helpfulnessAfter.rows[0].helpfulness)).toBe(Number(helpfulnessBefore.rows[0].helpfulness) + 1);
+  })
+})
