@@ -9,4 +9,16 @@ const client = new Client({
     connectionString: connectionString
 });
 
-client.connect();
+var connect = async () => {
+    await client.connect((err) => {
+        if (err) {
+            console.log(err);
+        } else {
+            console.log('connected!');
+        }
+    });
+};
+
+connect();
+
+module.exports = client;
