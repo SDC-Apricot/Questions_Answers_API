@@ -70,7 +70,7 @@ INSERT INTO answers(id, question_id, body, date, answerer_name, answerer_email, 
 SELECT id, question_id, body, to_timestamp(date/1000), answerer_name, answerer_email, reported, helpfulness
 FROM answerstemp;
 
-COPY photos(id, answers_id, photo_url)
+COPY photos(id, answers_id, url)
 FROM '/Users/alizehrehman/Downloads/answers_photos.csv'
 DELIMITER ','
 CSV HEADER;
@@ -100,3 +100,8 @@ CREATE SEQUENCE photo_id_increment
   NO MAXVALUE
   OWNED BY photos.id;
 
+CREATE INDEX idx_product_id_questions ON questions(product_id);
+CREATE INDEX idx_question_id_questions ON questions(question_id);
+CREATE INDEX idx_question_id_answers ON answers(question_id);
+CREATE INDEX idx_id_answers ON answers(id);
+CREATE INDEX idx_answers_id_photos ON photos(answers_id);
