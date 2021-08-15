@@ -1,3 +1,6 @@
 node_modules
 coverage/
 .env
+postgres/answers.csv
+postgres/answers_photos.csv
+postgres/questions.csv
