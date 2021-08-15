@@ -1,21 +1,21 @@
 version: "3.9"
-  services:
-    server:
-      container_name: "server"
-      image: alizehrehman/questions_answers_api_postgres:firsttry
-      restart: on-failure
-      depends_on:
-        - postgres
-      ports:
-        - "5000:5000"
-      command: "npm start"
-    postgres:
-      container_name: "postgres"
-      image: alizehrehman/questions_answers_api_server:firsttry
-      restart: always
-      ports:
-        - "5432:5432"
-      volumes:
-        - pg_data:/var/lib/postgresql/data
-  volumes:
-    pg_data:
+services:
+  server:
+    container_name: "server"
+    build: .
+    restart: on-failure
+    depends_on:
+      - postgres
+    ports:
+      - "5000:5000"
+    command: "npm start"
+  postgres:
+    container_name: "postgres"
+    build: ./postgres/.
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+volumes:
+  pg_data:
