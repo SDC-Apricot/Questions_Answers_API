@@ -7,6 +7,10 @@ const bodyParser = require('body-parser');
 
 app.use(bodyParser.json());
 
+app.get('/loaderio-d30bd13246b2a17441d30728294e77f3', (req, res) => {
+  res.send('loaderio-d30bd13246b2a17441d30728294e77f3');
+  })
+
 app.get('/qa/questions', (req,res) => {
 
   // extract parameters
@@ -29,7 +33,7 @@ app.get('/qa/questions', (req,res) => {
             (
             SELECT array_to_json(array_agg(row_to_json(f)))
             FROM (
-              SELECT p.id, p.photo_url
+              SELECT p.id, p.url
               FROM qa_schema."photos" AS p
               WHERE  a.id = p.answers_id 
               ) f
@@ -104,7 +108,7 @@ app.get('/qa/questions/*/answers', (req,res) => {
       (
       SELECT array_to_json(array_agg(row_to_json(f)))
       FROM (
-        SELECT p.id, p.photo_url
+        SELECT p.id, p.url
         FROM qa_schema."photos" AS p
         WHERE  a.id = p.answers_id
         ) f
@@ -163,7 +167,7 @@ app.post('/qa/questions/*/answers', (req, res) => {
   `;
   
   var queryPhoto = `
-  INSERT INTO qa_schema."photos"(id, answers_id, photo_url)
+  INSERT INTO qa_schema."photos"(id, answers_id, url)
   VALUES `;
 
   client.query(queryAnswer)
