@@ -1,7 +1,7 @@
 const express = require('express');
 const { forEach } = require('lodash');
 const app = express();
-const client = require('../postgresql/index.js');
+const client = require('../postgres/index.js');
 const getParameters = require('./helpers/getParameters.js');
 const bodyParser = require('body-parser');
 

@@ -1,5 +1,5 @@
 const app = require('../server/app.js');
-const client = require('../postgresql/index.js');
+const client = require('../postgres/index.js');
 const supertest = require('supertest');
 const axios = require('axios');
 const port = 5000;
