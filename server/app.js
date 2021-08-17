@@ -4,10 +4,11 @@ const app = express();
 const client = require('../postgres/index.js');
 const getParameters = require('./helpers/getParameters.js');
 const bodyParser = require('body-parser');
+const loaderioToken = process.env.LOADER_IO_TOKEN;
 
 app.use(bodyParser.json());
 
-app.get('/loaderio-d30bd13246b2a17441d30728294e77f3', (req, res) => {
+app.get(`/${}`, (req, res) => {
   res.send('loaderio-d30bd13246b2a17441d30728294e77f3');
   })
 

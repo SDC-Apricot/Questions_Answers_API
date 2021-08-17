@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 require('dotenv').config();
-const username = process.env.POSTGRES_USERNAME;
+const username = process.env.POSTGRES_USER;
 const password = process.env.POSTGRES_PASSWORD;
 const host = process.env.POSTGRES_HOST;
 

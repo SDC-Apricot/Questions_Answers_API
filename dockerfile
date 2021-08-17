@@ -4,6 +4,7 @@ ENV POSTGRES_PASSWORD docker
 ENV POSTGRES_USER postgres
 ENV POSTGRES_DB questions_answers
 ENV POSTGRES_HOST postgres
+ENV LOADER_IO_TOKEN loaderio-ba42614c1c6b665c0123cd20f364f69b
 COPY package*.json ./
 RUN npm install
 COPY server/* /questions_answers_api/server/
