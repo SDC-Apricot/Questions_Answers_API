@@ -4,6 +4,8 @@ ENV POSTGRES_PASSWORD docker
 ENV POSTGRES_USER postgres
 ENV POSTGRES_DB questions_answers
 ENV POSTGRES_HOST postgres
+ENV REDIS_HOST redis
+ENV REDIS_PORT 6379
 ENV LOADER_IO_TOKEN loaderio-ba42614c1c6b665c0123cd20f364f69b
 COPY package*.json ./
 RUN npm install

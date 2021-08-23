@@ -30,7 +30,7 @@ let Answer = mongoose.model('Answer', answersSchema);
 let photosSchema = mongoose.Schema({
   id: Number,
   answers_id: Number,
-  photo_url: String
+  url: String
 });
 
 let Photo = mongoose.model('Photo', photosSchema);
