@@ -1,23 +1,42 @@
 const express = require('express');
-const { forEach } = require('lodash');
+const redis = require('redis');
 const app = express();
-const client = require('../postgresql/index.js');
+const db = require('../postgres/index.js');
 const getParameters = require('./helpers/getParameters.js');
+const formatGetQuestionsResults = require('./helpers/formatGetQuestionsResults.js');
+const formatGetAnswersResults = require('./helpers/formatGetAnswersResults.js');
 const bodyParser = require('body-parser');
+const loaderioToken = process.env.LOADER_IO_TOKEN;
+const redis_host = process.env.REDIS_HOST;
+const redis_port = process.env.REDIS_PORT;
 
 app.use(bodyParser.json());
 
-app.get('/qa/questions', (req,res) => {
+// redis set up
+const client = redis.createClient({
+  host: redis_host,
+  port: redis_port
+});
+client.on('connect', function (err) {
+  if (err) {
+    console.log('Could not establish a connection with Redis. ' + err);
+  } else {
+    console.log('Connected to Redis successfully!');
+  }
+});
 
+
+app.get(`/${loaderioToken}`, (req, res) => {
+  res.send(loaderioToken);
+  })
+
+app.get('/qa/questions', (req,res) => {
   // extract parameters
   var parameters = getParameters(req.originalUrl);
-
   // if product_id is not included in the query respond with bad request (400)
   if (parameters.product_id === undefined) {
     res.status(400).send('product_id is not defined');
   }
-  
-  // query db
   var query = `
     SELECT array_to_json(array_agg(row_to_json(d)))
     FROM (
@@ -29,7 +48,7 @@ app.get('/qa/questions', (req,res) => {
             (
             SELECT array_to_json(array_agg(row_to_json(f)))
             FROM (
-              SELECT p.id, p.photo_url
+              SELECT p.id, p.url
               FROM qa_schema."photos" AS p
               WHERE  a.id = p.answers_id 
               ) f
@@ -41,35 +60,46 @@ app.get('/qa/questions', (req,res) => {
       FROM qa_schema."questions" AS q
       WHERE product_id = ${parameters.product_id} AND q.reported = false
       ORDER BY q.question_id
-      LIMIT ${parameters.count} OFFSET ${parameters.startNumber}
   ) d;
   `;
 
   var data = {
-    product_id: parameters.product_id,
-    results: []
+    product_id: parameters.product_id
   };
-
-  client.query(query)
-    .then((response) => {
-      var questionsData = response.rows[0].array_to_json;
-      forEach(questionsData, (question) => {
-        var newAnswers = {};
-        forEach(question.answers, (answer) => {
-          if (answer.photos === null) {
-            answer.photos = [];
-          }
-          newAnswers[answer.id] = answer;
-        })
-        question.answers = newAnswers;
-        data.results.push(question);
-      })
-      res.status(200).send(data);
-    })
-    .catch((error) => {
-      res.status(500).send(error);
-    })
-})
+  
+  try {
+    client.get(`product_id: ${parameters.product_id}`, async (error, questions) => {
+      if (error) {
+        throw error;
+      }
+      if (questions) {
+        var questions = JSON.parse(questions);
+        data.results = questions.slice(parameters.startNumber, parameters.startNumber + parameters.count);
+        res.status(200).send(data);
+      } else {
+        //query db
+        db.query(query)
+          .then((response) => {
+            var questionsData = response.rows[0].array_to_json;
+            var formattedQuestions = formatGetQuestionsResults(questionsData);
+            // add set to cache
+            client.set(`product_id: ${parameters.product_id}`, JSON.stringify(formattedQuestions));
+            // set data.results to sliced questions array
+            data.results = formattedQuestions.slice(parameters.startNumber, parameters.startNumber + parameters.count);
+            res.status(200).send(data);
+          })
+          .catch((error) => {
+            console.log(error);
+            res.status(500).send(error);
+          })
+      }
+    });
+  } catch(error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+  
+});
 
 app.post('/qa/questions', (req, res) => {
 
@@ -77,8 +107,13 @@ app.post('/qa/questions', (req, res) => {
   INSERT INTO qa_schema."questions"(question_id, product_id, question_body, question_date, asker_name, asker_email, reported, question_helpfulness)
   VALUES (nextval('qa_schema.question_id_increment'), ${Number(req.body.product_id)}, '${req.body.body}', NOW(), '${req.body.name}', '${req.body.email}', false, 0);
   `;
+  client.del(`product_id: ${req.body.product_id}`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+  })
 
-  client.query(query)
+  db.query(query)
     .then((data) => {
       res.status(201).send(data);
     })
@@ -88,15 +123,12 @@ app.post('/qa/questions', (req, res) => {
 })
 
 app.get('/qa/questions/*/answers', (req,res) => {
-
   // extract parameters
   var parameters = getParameters(req.originalUrl);
-
   // if question_id is not included in the query respond with bad request (400)
   if (parameters.question_id === undefined) {
     res.status(400).send('question_id is not defined');
   }
-
   var query = `
   SELECT array_to_json(array_agg(row_to_json(e)))
   FROM (
@@ -104,7 +136,7 @@ app.get('/qa/questions/*/answers', (req,res) => {
       (
       SELECT array_to_json(array_agg(row_to_json(f)))
       FROM (
-        SELECT p.id, p.photo_url
+        SELECT p.id, p.url
         FROM qa_schema."photos" AS p
         WHERE  a.id = p.answers_id
         ) f
@@ -112,9 +144,8 @@ app.get('/qa/questions/*/answers', (req,res) => {
     FROM qa_schema."answers" AS a
     WHERE a.question_id = ${parameters.question_id} AND a.reported = false
     ORDER BY a.id
-    LIMIT ${parameters.count} OFFSET ${parameters.startNumber}
-    ) e
-  `
+    ) e;
+  `;
 
   var data = {
     question: parameters.question_id,
@@ -122,24 +153,37 @@ app.get('/qa/questions/*/answers', (req,res) => {
     count: parameters.count,
     results: []
   };
+  try {
+    client.get(`question_id: ${parameters.question_id}`, async (error, answers) => {
+      if (error) {
+        throw error;
+      }
+      if (answers) {
+        var answers = JSON.parse(answers);
+        data.results = answers.slice(parameters.startNumber, parameters.startNumber + parameters.count);
+        res.status(200).send(data);
+      } else {
+        db.query(query)
+          .then((response) => {
+            var answersData = response.rows[0].array_to_json;
+            var formattedAnswers = formatGetAnswersResults(answersData);
+            // add set to cache
+            client.set(`question_id: ${parameters.question_id}`, JSON.stringify(formattedAnswers));
+            // set data.results to sliced questions array
+            data.results = formattedAnswers.slice(parameters.startNumber, parameters.startNumber + parameters.count);
+            res.status(200).send(data);
+          })
+          .catch((error) => {
+            console.log(error);
+            res.status(500).send(error);
+          })
+      }
+    });
+  } catch(error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
   
-  client.query(query)
-    .then((response) => {
-      var answersData = response.rows[0].array_to_json;
-      forEach(answersData, (answer) => {
-        var id = answer.id;
-        answer.answer_id = id;
-        delete answer.id;
-        if (answer.photos === null) {
-          answer.photos = [];
-        }
-        data.results.push(answer);
-      })
-      res.status(200).send(data);
-    })
-    .catch((error) => {
-      res.status(500).send(error);
-    })
 })
 
 app.post('/qa/questions/*/answers', (req, res) => {
@@ -163,10 +207,16 @@ app.post('/qa/questions/*/answers', (req, res) => {
   `;
   
   var queryPhoto = `
-  INSERT INTO qa_schema."photos"(id, answers_id, photo_url)
+  INSERT INTO qa_schema."photos"(id, answers_id, url)
   VALUES `;
+  
+  client.del(`question_id: ${parameters.question_id}`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+  });
 
-  client.query(queryAnswer)
+  db.query(queryAnswer)
     .then((response) => {
       var answer_id = Number(response.rows[0].id);
       for (var i = 0; i < req.body.photos.length; i++) {
@@ -177,7 +227,7 @@ app.post('/qa/questions/*/answers', (req, res) => {
           queryPhoto = queryPhoto + currString + `, `;
         }
       };
-      return client.query(queryPhoto);
+      return db.query(queryPhoto);
     })
     .then((response) => {
       res.status(201).send();
@@ -185,7 +235,7 @@ app.post('/qa/questions/*/answers', (req, res) => {
     .catch((error) => {
       res.status(500).send(error);
     })
-})
+});
 
 app.put('/qa/questions/*/helpful', (req, res) => {
 
@@ -202,14 +252,20 @@ app.put('/qa/questions/*/helpful', (req, res) => {
   SET question_helpfulness = ((SELECT question_helpfulness FROM qa_schema."questions" WHERE question_id=${parameters.question_id}) + 1)
   WHERE question_id=${parameters.question_id};`
 
-  client.query(query)
+  client.del(`question_id: ${parameters.question_id}`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+  });
+
+  db.query(query)
     .then((response) => {
       res.status(204).send();
     })
     .catch((error) => {
       res.status(500).send(error);
     })
-})
+});
 
 app.put('/qa/questions/*/report', (req, res) => {
   
@@ -226,7 +282,13 @@ app.put('/qa/questions/*/report', (req, res) => {
   SET reported = true
   WHERE question_id=${parameters.question_id};`
 
-  client.query(query)
+  client.del(`question_id: ${parameters.question_id}`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+  })
+
+  db.query(query)
     .then((response) => {
       res.status(204).send();
     })
@@ -251,7 +313,7 @@ app.put('/qa/answers/*/helpful', (req, res) => {
   SET helpfulness = ((SELECT helpfulness FROM qa_schema."answers" WHERE id=${parameters.answer_id}) + 1)
   WHERE id=${parameters.answer_id};`
 
-  client.query(query)
+  db.query(query)
     .then((response) => {
       res.status(204).send();
     })
@@ -275,7 +337,7 @@ app.put('/qa/answers/*/report', (req, res) => {
   SET reported = true
   WHERE id=${parameters.answer_id};`
 
-  client.query(query)
+  db.query(query)
     .then((response) => {
       res.status(204).send();
     })

@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  server:
+    container_name: "server"
+    build: .
+    restart: on-failure
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "5000:5000"
+    command: "npm start"
+  postgres:
+    container_name: "postgres"
+    build: ./postgres/.
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  redis:
+    image: redis:latest
+    container_name: cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data:/data
+volumes:
+  pg_data:

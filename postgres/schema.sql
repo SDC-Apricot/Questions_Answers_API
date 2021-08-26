@@ -1,9 +1,9 @@
-CREATE SCHEMA [IF NOT EXISTS] qa_schema;
+CREATE SCHEMA IF NOT EXISTS qa_schema;
 
-SET search_path TO qa_schema, public;
+SET search_path TO qa_schema;
 
 CREATE TABLE questions (
-  question_id INTEGER NOT NULL PRIMARY KEY,
+  question_id SERIAL NOT NULL PRIMARY KEY,
   product_id INTEGER NOT NULL,
   question_body VARCHAR(1000),
   question_date TIMESTAMP WITH TIME ZONE,
@@ -14,7 +14,7 @@ CREATE TABLE questions (
 );
 
 CREATE TABLE answers (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id SERIAL NOT NULL PRIMARY KEY,
   question_id INTEGER NOT NULL REFERENCES questions(question_id),
   body VARCHAR(1000),
   date TIMESTAMP WITH TIME ZONE,
@@ -25,13 +25,13 @@ CREATE TABLE answers (
 );
 
 CREATE TABLE photos (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id SERIAL NOT NULL PRIMARY KEY,
   answers_id INTEGER NOT NULL REFERENCES answers(id),
   url VARCHAR(200)
 );
 
 CREATE TEMP TABLE questionstemp (
-  question_id INTEGER NOT NULL PRIMARY KEY,
+  question_id SERIAL NOT NULL PRIMARY KEY,
   product_id INTEGER,
   question_body VARCHAR(1000),
   question_date BIGINT,
@@ -42,7 +42,7 @@ CREATE TEMP TABLE questionstemp (
 );
 
 CREATE TEMP TABLE answerstemp (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id SERIAL NOT NULL PRIMARY KEY,
   question_id INTEGER NOT NULL,
   body VARCHAR(1000),
   date BIGINT,
@@ -53,12 +53,12 @@ CREATE TEMP TABLE answerstemp (
 );
 
 COPY questionstemp(question_id, product_id, question_body, question_date, asker_name, asker_email, reported, question_helpfulness)
-FROM '/Users/alizehrehman/Downloads/questions.csv'
+FROM '/postgres/questions.csv'
 DELIMITER ','
 CSV HEADER;
 
 COPY answerstemp(id, question_id, body, date, answerer_name, answerer_email, reported, helpfulness)
-FROM '/Users/alizehrehman/Downloads/answers.csv'
+FROM '/postgres/answers.csv'
 DELIMITER ','
 CSV HEADER;
 
@@ -71,7 +71,7 @@ SELECT id, question_id, body, to_timestamp(date/1000), answerer_name, answerer_e
 FROM answerstemp;
 
 COPY photos(id, answers_id, url)
-FROM '/Users/alizehrehman/Downloads/answers_photos.csv'
+FROM '/postgres/answers_photos.csv'
 DELIMITER ','
 CSV HEADER;
 
@@ -80,21 +80,18 @@ DROP TABLE questionstemp cascade;
 DROP TABLE answerstemp cascade;
 
 CREATE SEQUENCE question_id_increment
-  AS INT
   START 3518964
   INCREMENT 1
   NO MAXVALUE
   OWNED BY questions.question_id;
 
 CREATE SEQUENCE answer_id_increment
-  AS INT
   START 6879307
   INCREMENT 1
   NO MAXVALUE
   OWNED BY answers.id;
 
 CREATE SEQUENCE photo_id_increment
-  AS INT
   START 2063760
   INCREMENT 1
   NO MAXVALUE

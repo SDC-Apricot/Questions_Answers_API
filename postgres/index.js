@@ -1,16 +1,17 @@
 const { Client } = require('pg');
 require('dotenv').config();
-const username = process.env.POSTGRES_USERNAME;
+const username = process.env.POSTGRES_USER;
 const password = process.env.POSTGRES_PASSWORD;
+const host = process.env.POSTGRES_HOST;
 
-var connectionString = `postgres://${username}:${password}@localhost:5432/questions_answers`;
+var connectionString = `postgres://${username}:${password}@${host}:5432/questions_answers`;
 
-const client = new Client({
+const db = new Client({
     connectionString: connectionString
 });
 
 var connect = async () => {
-    await client.connect((err) => {
+    await db.connect((err) => {
         if (err) {
             console.log(err);
         } else {
@@ -21,4 +22,4 @@ var connect = async () => {
 
 connect();
 
-module.exports = client;
+module.exports = db;

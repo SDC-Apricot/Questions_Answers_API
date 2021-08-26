@@ -1,0 +1,9 @@
+FROM postgres
+WORKDIR /postgres
+ENV POSTGRES_PASSWORD docker
+ENV POSTGRES_USER postgres
+ENV POSTGRES_DB questions_answers
+ENV POSTGRES_HOST postgres
+EXPOSE 5432
+COPY . .
+COPY schema.sql /docker-entrypoint-initdb.d/
