@@ -1,0 +1,4 @@
+FROM redis:latest
+WORKDIR /var/lib/redis
+EXPOSE 6379
+CMD ["redis-server", "/redis.conf"]
